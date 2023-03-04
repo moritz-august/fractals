@@ -63,7 +63,7 @@ def visualize_mandelbrot_interactive(resolution: int = 200, start_radius: float 
 
     fig.canvas.mpl_connect('button_press_event', onclick)
 
-    frame = compute_frame(complex(center_real, center_imag), radius)
+    frame = compute_frame(complex(center_real, center_imag), radius, res)
     ax.imshow(frame, cmap='viridis')
     ax.set_xticks([])
     ax.set_yticks([])
@@ -75,18 +75,17 @@ def visualize_mandelbrot_interactive(resolution: int = 200, start_radius: float 
 
 def visualize_mandelbrot_automatic(resolution: int = 200, start_radius: float = 2., start_real: float = 0,
                                    start_imag: float = 0, zoom_fac: float = 1.05, center_update_freq: int = 20):
-    global ax, res
     plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot()
 
-    global radius
+    global radius, res
     res = resolution
     radius = start_radius
     center_real = start_real
     center_imag = start_imag
 
-    frame = compute_frame(complex(center_real, center_imag), radius)
+    frame = compute_frame(complex(center_real, center_imag), radius, res)
     ax.imshow(frame, cmap='viridis')
     ax.set_xticks([])
     ax.set_yticks([])
@@ -98,7 +97,8 @@ def visualize_mandelbrot_automatic(resolution: int = 200, start_radius: float = 
 
     i = 0
     while True:
-        center_real, center_imag = update_domain_params(center_real, center_imag, center_real_coord, center_imag_coord, zoom_fac)
+        center_real, center_imag = update_domain_params(center_real, center_imag, center_real_coord, center_imag_coord,
+                                                        zoom_fac)
         frame = compute_frame(complex(center_real, center_imag), radius, res)
         ax.clear()
         ax.imshow(frame, cmap='viridis')
