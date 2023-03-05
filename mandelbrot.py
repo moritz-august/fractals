@@ -4,15 +4,17 @@ import numpy as np
 def mandelbrot_fn(c: np.ndarray, depth: int = 100) -> np.ndarray:
     z = np.zeros_like(c)
     counts = np.zeros_like(c, dtype=float)
-    update_mask = np.ones_like(counts, dtype=bool)
+    update_mask = np.abs(z) <= 2.
+
     for _ in range(depth):
         z[update_mask] = (z * z + c)[update_mask]
-        update_mask = np.abs(z) <= 2
+        update_mask = np.abs(z) <= 2.
         counts[update_mask] += 1
+
     return counts
 
 
-def compute_frame(center: complex = complex(0, 0), radius: float = 2., resolution: int = 200) -> np.ndarray:
+def compute_frame(center: complex = complex(0., 0.), radius: float = 2., resolution: int = 200) -> np.ndarray:
     reals = np.linspace(center.real - radius, center.real + radius, resolution)
     imags = np.linspace(center.imag - radius, center.imag + radius, resolution)
     c_plane = np.zeros((resolution, resolution), dtype=complex)
@@ -28,4 +30,5 @@ def compute_frame(center: complex = complex(0, 0), radius: float = 2., resolutio
 def normalize_min_max(frame: np.ndarray) -> np.ndarray:
     frame -= frame.min()
     frame /= frame.max()
+
     return frame
