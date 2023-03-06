@@ -1,5 +1,7 @@
 import numpy as np
 
+from util import normalize_min_max
+
 
 def mandelbrot_fn(c: np.ndarray, depth: int = 100) -> np.ndarray:
     z = np.zeros_like(c)
@@ -23,12 +25,5 @@ def compute_frame(center: complex = complex(0., 0.), radius: float = 2., resolut
 
     frame = mandelbrot_fn(c_plane)
     frame = normalize_min_max(frame)
-
-    return frame
-
-
-def normalize_min_max(frame: np.ndarray) -> np.ndarray:
-    frame -= frame.min()
-    frame /= frame.max()
 
     return frame
