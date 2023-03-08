@@ -28,6 +28,11 @@ class ZoomVisualizer:
         else:
             self.radius /= self.zoom_fac
 
+    def visualize_frame(self, frame: np.ndarray):
+        frame_vis = cv2.applyColorMap((frame * 255).astype(np.uint8), cv2.COLORMAP_BONE)
+        frame_vis = cv2.resize(frame_vis, (800, 800), cv2.INTER_LINEAR)
+        cv2.imshow('Fractal Zoom', frame_vis)
+
 
 class ZoomClickVisualizer(ZoomVisualizer):
 
@@ -40,15 +45,13 @@ class ZoomClickVisualizer(ZoomVisualizer):
             if action == cv2.EVENT_LBUTTONDOWN:
                 self.update_domain_params(x, y)
                 frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-                print(x, y)
-                cv2.imshow('Fractal Zoom', frame)
+                self.visualize_frame(frame)
 
         cv2.namedWindow('Fractal Zoom')
         cv2.setMouseCallback('Fractal Zoom', mouse_callback)
 
         frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-
-        cv2.imshow('Fractal Zoom', frame)
+        self.visualize_frame(frame)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
@@ -60,6 +63,7 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         super(ZoomAutoVisualizer, self).__init__(resolution, zoom_fac, start_radius, start_real, start_imag)
         self.center_update_freq = center_update_freq
         self.frame_refresh_ms = 20
+        self.initial_zoom_fac = 1.01
 
     @staticmethod
     def get_new_center_coords(center_imag_coord: float, center_imag_coords: np.ndarray, center_real_coord: float,
@@ -80,7 +84,7 @@ class ZoomAutoVisualizer(ZoomVisualizer):
 
         frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
         cv2.namedWindow('Fractal Zoom')
-        cv2.imshow('Fractal Zoom', frame)
+        self.visualize_frame(frame)
         cv2.waitKey(self.frame_refresh_ms)
 
         center_real_coord = self.resolution // 2
@@ -94,10 +98,10 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         while True:
             self.update_domain_params(center_real_coord, center_imag_coord)
             frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-            cv2.imshow('Fractal Zoom', frame)
+            self.visualize_frame(frame)
             cv2.waitKey(self.frame_refresh_ms)
 
-            if i % self.center_update_freq == 0:
+            if i > 0 and i % self.center_update_freq == 0:
                 center_imag_coords, center_real_coords = self.get_center_candidate_coords(frame)
                 if len(center_real_coords) == 0:
                     break
@@ -111,16 +115,27 @@ class ZoomAutoVisualizer(ZoomVisualizer):
 
         cv2.destroyAllWindows()
 
-    # todo: make more smooth with precomputed steps
     def move_to_zoom_start(self, center_imag_coord: int, center_real_coord: int, zoom_start_imag: float,
                            zoom_start_real: float) -> Tuple[int, int]:
-        while np.abs(self.center_real - zoom_start_real) > 1e-1 or np.abs(self.center_imag - zoom_start_imag) > 1e-1:
-            center_real_coord = self.resolution // 2 + np.sign(zoom_start_real - self.center_real) * 1
-            center_imag_coord = self.resolution // 2 + np.sign(zoom_start_imag - self.center_imag) * 1
-            self.update_domain_params(center_real_coord, center_imag_coord, 1.0)
+
+        real_dist = zoom_start_real - self.center_real
+        imag_dist = zoom_start_imag - self.center_imag
+        real_direction = np.sign(real_dist)
+        imag_direction = np.sign(imag_dist)
+        real_update_step = np.maximum(np.abs(real_dist // imag_dist), 1)
+        imag_update_step = np.maximum(np.abs(imag_dist // real_dist), 1)
+
+        while True:
+            center_real_coord = self.resolution // 2 + real_direction * real_update_step
+            center_imag_coord = self.resolution // 2 + imag_direction * imag_update_step
+            self.update_domain_params(center_real_coord, center_imag_coord, self.initial_zoom_fac)
+            if (zoom_start_real - self.center_real) * real_dist < 0 and (
+                    zoom_start_imag - self.center_imag) * imag_direction < 0:
+                break
             frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-            cv2.imshow('Fractal Zoom', frame)
+            self.visualize_frame(frame)
             cv2.waitKey(self.frame_refresh_ms)
+
         return center_imag_coord, center_real_coord
 
     def get_zoom_start(self, frame: np.ndarray) -> Tuple[float, float]:
