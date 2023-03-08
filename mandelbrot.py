@@ -1,5 +1,6 @@
 import numpy as np
 
+from util import get_complex_plane
 from util import normalize_min_max
 
 
@@ -17,12 +18,7 @@ def mandelbrot_fn(c: np.ndarray, depth: int = 100) -> np.ndarray:
 
 
 def compute_frame(center: complex = complex(0., 0.), radius: float = 2., resolution: int = 200) -> np.ndarray:
-    reals = np.linspace(center.real - radius, center.real + radius, resolution)
-    imags = np.linspace(center.imag - radius, center.imag + radius, resolution)
-    c_plane = np.zeros((resolution, resolution), dtype=complex)
-    c_plane.real = np.tile(reals[np.newaxis, ...], (resolution, 1))
-    c_plane.imag = np.tile(imags[np.newaxis, ...], (resolution, 1)).transpose()
-
+    c_plane = get_complex_plane(center, radius, resolution)
     frame = mandelbrot_fn(c_plane)
     frame = normalize_min_max(frame)
 

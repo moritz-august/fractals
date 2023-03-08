@@ -1,8 +1,7 @@
 from typing import Tuple
 
+import cv2
 import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib.backend_bases import MouseEvent
 
 from mandelbrot import compute_frame
 
@@ -26,39 +25,36 @@ class ZoomVisualizer:
 
 
 class ZoomClickVisualizer(ZoomVisualizer):
+
     def __init__(self, resolution: int = 200, zoom_fac: float = 1.2, start_radius: float = 2., start_real: float = 0,
                  start_imag: float = 0):
         super(ZoomClickVisualizer, self).__init__(resolution, zoom_fac, start_radius, start_real, start_imag)
 
     def visualize(self):
-        def onclick_callback(event: MouseEvent):
-            self.update_domain_params(event.xdata, event.ydata)
-            frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-            ax.clear()
-            ax.imshow(frame, cmap='viridis')
-            plt.gcf().canvas.draw_idle()
+        def mouse_callback(action, x, y, flags, *userdata):
+            if action == cv2.EVENT_LBUTTONDOWN:
+                self.update_domain_params(x, y)
+                frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+                print(x, y)
+                cv2.imshow('Fractal Zoom', frame)
 
-        plt.ion()
-        fig = plt.figure()
-        ax = fig.add_subplot()
-
-        fig.canvas.mpl_connect('button_press_event', onclick_callback)
+        cv2.namedWindow('Fractal Zoom')
+        cv2.setMouseCallback('Fractal Zoom', mouse_callback)
 
         frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-        ax.imshow(frame, cmap='viridis')
-        ax.set_xticks([])
-        ax.set_yticks([])
 
-        while True:
-            fig.canvas.draw()
-            fig.canvas.flush_events()
+        cv2.imshow('Fractal Zoom', frame)
+        cv2.waitKey(0)
+        cv2.destroyAllwindows()
 
 
 class ZoomAutoVisualizer(ZoomVisualizer):
+
     def __init__(self, resolution: int = 200, start_radius: float = 2., start_real: float = 0,
                  start_imag: float = 0, zoom_fac: float = 1.05, center_update_freq: int = 20):
         super(ZoomAutoVisualizer, self).__init__(resolution, zoom_fac, start_radius, start_real, start_imag)
         self.center_update_freq = center_update_freq
+        self.frame_refresh_ms = 20
 
     @staticmethod
     def get_new_center_coords(center_imag_coord: float, center_imag_coords: np.ndarray, center_real_coord: float,
@@ -79,14 +75,10 @@ class ZoomAutoVisualizer(ZoomVisualizer):
 
     def visualize(self):
 
-        plt.ion()
-        fig = plt.figure()
-        ax = fig.add_subplot()
-
         frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-        ax.imshow(frame, cmap='viridis')
-        ax.set_xticks([])
-        ax.set_yticks([])
+        cv2.namedWindow('Fractal Zoom')
+        cv2.imshow('Fractal Zoom', frame)
+        cv2.waitKey(self.frame_refresh_ms)
 
         center_imag_coords, center_real_coords = self.get_center_candidate_coords(frame)
         sampled_coord_idx = np.random.choice(np.arange(len(center_real_coords)))
@@ -97,12 +89,8 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         while True:
             self.update_domain_params(center_real_coord, center_imag_coord)
             frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
-            ax.clear()
-            ax.imshow(frame, cmap='viridis')
-            ax.set_xticks([])
-            ax.set_yticks([])
-            fig.canvas.draw()
-            fig.canvas.flush_events()
+            cv2.imshow('Fractal Zoom', frame)
+            cv2.waitKey(self.frame_refresh_ms)
 
             if i % self.center_update_freq == 0:
                 center_imag_coords, center_real_coords = self.get_center_candidate_coords(frame)
@@ -115,3 +103,5 @@ class ZoomAutoVisualizer(ZoomVisualizer):
                 center_imag_coord = self.resolution / 2
 
             i += 1
+
+        cv2.destroyAllwindows()
