@@ -8,8 +8,8 @@ from visualize import ZoomClickVisualizer
 def main():
     parser = ArgumentParser()
     parser.add_argument('--mode', type=VisualizationMode, default=VisualizationMode.AUTO)
-    parser.add_argument('--resolution', type=int, default=200)
-    parser.add_argument('--zoom_fac', type=float, default=1.05)
+    parser.add_argument('--resolution', type=int, default=400)
+    parser.add_argument('--zoom_fac', type=float, default=1.03)
     args = parser.parse_args()
 
     if args.mode == VisualizationMode.AUTO:

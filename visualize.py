@@ -1,3 +1,4 @@
+from typing import Optional
 from typing import Tuple
 
 import cv2
@@ -16,12 +17,16 @@ class ZoomVisualizer:
         self.center_imag = start_imag
         self.zoom_fac = zoom_fac
 
-    def update_domain_params(self, real_coord: float, imag_coord: float):
+    def update_domain_params(self, real_coord: float, imag_coord: float, zoom_fac: Optional[float] = None):
         min_real = self.center_real - self.radius
         min_imag = self.center_imag - self.radius
         self.center_real = min_real + real_coord / self.resolution * 2 * self.radius
         self.center_imag = min_imag + imag_coord / self.resolution * 2 * self.radius
-        self.radius /= self.zoom_fac
+
+        if zoom_fac:
+            self.radius /= zoom_fac
+        else:
+            self.radius /= self.zoom_fac
 
 
 class ZoomClickVisualizer(ZoomVisualizer):
@@ -45,7 +50,7 @@ class ZoomClickVisualizer(ZoomVisualizer):
 
         cv2.imshow('Fractal Zoom', frame)
         cv2.waitKey(0)
-        cv2.destroyAllwindows()
+        cv2.destroyAllWindows()
 
 
 class ZoomAutoVisualizer(ZoomVisualizer):
@@ -59,12 +64,10 @@ class ZoomAutoVisualizer(ZoomVisualizer):
     @staticmethod
     def get_new_center_coords(center_imag_coord: float, center_imag_coords: np.ndarray, center_real_coord: float,
                               center_real_coords: np.ndarray) -> Tuple[float, float]:
-        sampled_coord_idx = np.argmin(
-            [np.sqrt((center_real - center_real_coord) ** 2 + (center_imag - center_imag_coord) ** 2)
-             for center_real, center_imag in
-             zip(center_real_coords, center_imag_coords)
-             ]
-        )
+        distances = np.sqrt((center_real_coords - center_real_coord) ** 2 +
+                            (center_imag_coords - center_imag_coord) ** 2)
+        sampled_coord_idx = np.argmin(distances)
+
         center_real_coord = center_real_coords[sampled_coord_idx]
         center_imag_coord = center_imag_coords[sampled_coord_idx]
         return center_imag_coord, center_real_coord
@@ -80,10 +83,12 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         cv2.imshow('Fractal Zoom', frame)
         cv2.waitKey(self.frame_refresh_ms)
 
-        center_imag_coords, center_real_coords = self.get_center_candidate_coords(frame)
-        sampled_coord_idx = np.random.choice(np.arange(len(center_real_coords)))
-        center_real_coord = center_real_coords[sampled_coord_idx]
-        center_imag_coord = center_imag_coords[sampled_coord_idx]
+        center_real_coord = self.resolution // 2
+        center_imag_coord = self.resolution // 2
+
+        zoom_start_imag, zoom_start_real = self.get_zoom_start(frame)
+        center_imag_coord, center_real_coord = self.move_to_zoom_start(center_imag_coord, center_real_coord,
+                                                                       zoom_start_imag, zoom_start_real)
 
         i = 0
         while True:
@@ -99,9 +104,33 @@ class ZoomAutoVisualizer(ZoomVisualizer):
                 center_imag_coord, center_real_coord = self.get_new_center_coords(center_imag_coord, center_imag_coords,
                                                                                   center_real_coord, center_real_coords)
             else:
-                center_real_coord = self.resolution / 2
-                center_imag_coord = self.resolution / 2
+                center_real_coord = self.resolution // 2
+                center_imag_coord = self.resolution // 2
 
             i += 1
 
-        cv2.destroyAllwindows()
+        cv2.destroyAllWindows()
+
+    # todo: make more smooth with precomputed steps
+    def move_to_zoom_start(self, center_imag_coord: int, center_real_coord: int, zoom_start_imag: float,
+                           zoom_start_real: float) -> Tuple[int, int]:
+        while np.abs(self.center_real - zoom_start_real) > 1e-1 or np.abs(self.center_imag - zoom_start_imag) > 1e-1:
+            center_real_coord = self.resolution // 2 + np.sign(zoom_start_real - self.center_real) * 1
+            center_imag_coord = self.resolution // 2 + np.sign(zoom_start_imag - self.center_imag) * 1
+            self.update_domain_params(center_real_coord, center_imag_coord, 1.0)
+            frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+            cv2.imshow('Fractal Zoom', frame)
+            cv2.waitKey(self.frame_refresh_ms)
+        return center_imag_coord, center_real_coord
+
+    def get_zoom_start(self, frame: np.ndarray) -> Tuple[float, float]:
+        center_imag_coords, center_real_coords = self.get_center_candidate_coords(frame)
+        sampled_coord_idx = np.random.choice(np.arange(len(center_real_coords)))
+        zoom_start_real = center_real_coords[sampled_coord_idx]
+        zoom_start_imag = center_imag_coords[sampled_coord_idx]
+        min_real = self.center_real - self.radius
+        min_imag = self.center_imag - self.radius
+        zoom_start_real = min_real + zoom_start_real / self.resolution * 2 * self.radius
+        zoom_start_imag = min_imag + zoom_start_imag / self.resolution * 2 * self.radius
+
+        return zoom_start_imag, zoom_start_real
