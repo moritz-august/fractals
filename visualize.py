@@ -79,7 +79,7 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         return center_imag_coord, center_real_coord
 
     @staticmethod
-    def get_center_candidate_coords(frame: np.ndarray, min_grad: float = 10) -> np.ndarray:
+    def get_center_candidate_coords(frame: np.ndarray, min_grad: float = 5) -> np.ndarray:
         sobel_grad = cv2.Sobel(frame, cv2.CV_64F, 1, 0, ksize=5)
         return np.where(sobel_grad > min_grad)
 

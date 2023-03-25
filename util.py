@@ -20,8 +20,8 @@ def normalize_const(frame: torch.Tensor, const: float) -> torch.Tensor:
 
 
 def get_complex_plane(center: complex, radius: float, resolution: int) -> torch.Tensor:
-    reals = torch.linspace(center.real - radius, center.real + radius, resolution)
-    imags = torch.linspace(center.imag - radius, center.imag + radius, resolution)
+    reals = torch.linspace(center.real - radius, center.real + radius, resolution, dtype=torch.float64)
+    imags = torch.linspace(center.imag - radius, center.imag + radius, resolution, dtype=torch.float64)
     c_plane = torch.zeros((resolution, resolution), dtype=torch.complex128)
     c_plane.real = torch.tile(reals.unsqueeze(0), (resolution, 1))
     c_plane.imag = torch.tile(imags.unsqueeze(0), (resolution, 1)).transpose(0, 1)
