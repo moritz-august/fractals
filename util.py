@@ -15,6 +15,10 @@ def normalize_min_max(frame: torch.Tensor) -> torch.Tensor:
     return frame
 
 
+def normalize_const(frame: torch.Tensor, const: float) -> torch.Tensor:
+    return frame / const
+
+
 def get_complex_plane(center: complex, radius: float, resolution: int) -> torch.Tensor:
     reals = torch.linspace(center.real - radius, center.real + radius, resolution)
     imags = torch.linspace(center.imag - radius, center.imag + radius, resolution)

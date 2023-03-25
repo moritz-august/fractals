@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from util import get_complex_plane
-from util import normalize_min_max
+from util import normalize_const
 
 HAS_CUDA = torch.cuda.is_available()
 
@@ -27,9 +27,10 @@ def mandelbrot_fn(c: torch.Tensor, depth: int = 100, bailout: float = 2 ** 8) ->
     return continuous_counts
 
 
-def compute_frame(center: complex = complex(0., 0.), radius: float = 2., resolution: int = 200) -> np.ndarray:
+def compute_frame(center: complex = complex(0., 0.), radius: float = 2., resolution: int = 200,
+                  depth: int = 100) -> np.ndarray:
     c_plane = get_complex_plane(center, radius, resolution)
     frame = mandelbrot_fn(c_plane)
-    frame = normalize_min_max(frame)
+    frame = normalize_const(frame, depth)
 
     return frame.cpu().numpy()

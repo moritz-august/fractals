@@ -9,9 +9,10 @@ from mandelbrot import compute_frame
 
 class ZoomVisualizer:
 
-    def __init__(self, resolution: int = 200, zoom_fac: float = 1.2, start_radius: float = 2., start_real: float = 0,
-                 start_imag: float = 0):
+    def __init__(self, resolution: int = 200, zoom_fac: float = 1.2,
+                 start_radius: float = 2., start_real: float = 0, start_imag: float = 0, output_resolution: int = 800):
         self.resolution = resolution
+        self.output_resolution = output_resolution
         self.radius = start_radius
         self.center_real = start_real
         self.center_imag = start_imag
@@ -29,8 +30,8 @@ class ZoomVisualizer:
             self.radius /= self.zoom_fac
 
     def visualize_frame(self, frame: np.ndarray):
-        frame_vis = cv2.applyColorMap((frame * 255).astype(np.uint8), cv2.COLORMAP_BONE)
-        frame_vis = cv2.resize(frame_vis, (800, 800), cv2.INTER_LINEAR)
+        frame_vis = cv2.applyColorMap((frame * 255).astype(np.uint8), cv2.COLORMAP_INFERNO)
+        frame_vis = cv2.resize(frame_vis, (self.output_resolution, self.output_resolution), cv2.INTER_LINEAR)
         cv2.imshow('Fractal Zoom', frame_vis)
 
 
@@ -77,7 +78,7 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         return center_imag_coord, center_real_coord
 
     @staticmethod
-    def get_center_candidate_coords(frame: np.ndarray, target_val: float = 0.5, tolerance: float = 0.1) -> np.ndarray:
+    def get_center_candidate_coords(frame: np.ndarray, target_val: float = 0.4, tolerance: float = 0.1) -> np.ndarray:
         return np.where(np.abs(frame - target_val) < tolerance)
 
     def visualize(self):
@@ -87,12 +88,8 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         self.visualize_frame(frame)
         cv2.waitKey(self.frame_refresh_ms)
 
-        center_real_coord = self.resolution // 2
-        center_imag_coord = self.resolution // 2
-
         zoom_start_imag, zoom_start_real = self.get_zoom_start(frame)
-        center_imag_coord, center_real_coord = self.move_to_zoom_start(center_imag_coord, center_real_coord,
-                                                                       zoom_start_imag, zoom_start_real)
+        center_imag_coord, center_real_coord = self.move_to_zoom_start(zoom_start_imag, zoom_start_real)
 
         i = 0
         while True:
@@ -115,8 +112,7 @@ class ZoomAutoVisualizer(ZoomVisualizer):
 
         cv2.destroyAllWindows()
 
-    def move_to_zoom_start(self, center_imag_coord: int, center_real_coord: int, zoom_start_imag: float,
-                           zoom_start_real: float) -> Tuple[int, int]:
+    def move_to_zoom_start(self, zoom_start_imag: float, zoom_start_real: float) -> Tuple[int, int]:
 
         real_dist = zoom_start_real - self.center_real
         imag_dist = zoom_start_imag - self.center_imag
