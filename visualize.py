@@ -73,13 +73,15 @@ class ZoomAutoVisualizer(ZoomVisualizer):
                             (center_imag_coords - center_imag_coord) ** 2)
         sampled_coord_idx = np.argmin(distances)
 
+        # todo: limit step size here
         center_real_coord = center_real_coords[sampled_coord_idx]
         center_imag_coord = center_imag_coords[sampled_coord_idx]
         return center_imag_coord, center_real_coord
 
     @staticmethod
-    def get_center_candidate_coords(frame: np.ndarray, target_val: float = 0.4, tolerance: float = 0.1) -> np.ndarray:
-        return np.where(np.abs(frame - target_val) < tolerance)
+    def get_center_candidate_coords(frame: np.ndarray, min_grad: float = 10) -> np.ndarray:
+        sobel_grad = cv2.Sobel(frame, cv2.CV_64F, 1, 0, ksize=5)
+        return np.where(sobel_grad > min_grad)
 
     def visualize(self):
 
