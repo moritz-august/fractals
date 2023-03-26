@@ -4,12 +4,15 @@ from typing import Tuple
 import cv2
 import numpy as np
 
-from mandelbrot import compute_frame
+from fractals import compute_frame
+from fractals import julia
+from fractals import mandelbrot
+from util import FractalClass
 
 
 class ZoomVisualizer:
 
-    def __init__(self, resolution: int = 200, zoom_fac: float = 1.2,
+    def __init__(self, fractal: FractalClass = FractalClass.MANDELBROT, resolution: int = 200, zoom_fac: float = 1.2,
                  start_radius: float = 2., start_real: float = 0, start_imag: float = 0, output_resolution: int = 800):
         self.resolution = resolution
         self.output_resolution = output_resolution
@@ -17,6 +20,12 @@ class ZoomVisualizer:
         self.center_real = start_real
         self.center_imag = start_imag
         self.zoom_fac = zoom_fac
+        if fractal == FractalClass.MANDELBROT:
+            self.fractal_fn = mandelbrot
+        elif fractal == FractalClass.JULIA:
+            self.fractal_fn = julia
+        else:
+            raise NotImplementedError('Unknown fractal.')
 
     def update_domain_params(self, real_coord: float, imag_coord: float, zoom_fac: Optional[float] = None):
         min_real = self.center_real - self.radius
@@ -37,21 +46,23 @@ class ZoomVisualizer:
 
 class ZoomClickVisualizer(ZoomVisualizer):
 
-    def __init__(self, resolution: int = 200, zoom_fac: float = 1.2, start_radius: float = 2., start_real: float = 0,
-                 start_imag: float = 0):
-        super(ZoomClickVisualizer, self).__init__(resolution, zoom_fac, start_radius, start_real, start_imag)
+    def __init__(self, fractal: FractalClass = FractalClass.MANDELBROT, resolution: int = 200, zoom_fac: float = 1.2,
+                 start_radius: float = 2., start_real: float = 0, start_imag: float = 0):
+        super(ZoomClickVisualizer, self).__init__(fractal, resolution, zoom_fac, start_radius, start_real, start_imag)
 
     def visualize(self):
         def mouse_callback(action, x, y, flags, *userdata):
             if action == cv2.EVENT_LBUTTONDOWN:
                 self.update_domain_params(x, y)
-                frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+                frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution,
+                                      self.fractal_fn)
                 self.visualize_frame(frame)
 
         cv2.namedWindow('Fractal Zoom')
         cv2.setMouseCallback('Fractal Zoom', mouse_callback)
 
-        frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+        frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution,
+                              self.fractal_fn)
         self.visualize_frame(frame)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -59,9 +70,9 @@ class ZoomClickVisualizer(ZoomVisualizer):
 
 class ZoomAutoVisualizer(ZoomVisualizer):
 
-    def __init__(self, resolution: int = 200, start_radius: float = 2., start_real: float = 0,
-                 start_imag: float = 0, zoom_fac: float = 1.05, center_update_freq: int = 20):
-        super(ZoomAutoVisualizer, self).__init__(resolution, zoom_fac, start_radius, start_real, start_imag)
+    def __init__(self, fractal: FractalClass = FractalClass.MANDELBROT, resolution: int = 200, start_radius: float = 2.,
+                 start_real: float = 0, start_imag: float = 0, zoom_fac: float = 1.05, center_update_freq: int = 20):
+        super(ZoomAutoVisualizer, self).__init__(fractal, resolution, zoom_fac, start_radius, start_real, start_imag)
         self.center_update_freq = center_update_freq
         self.frame_refresh_ms = 20
         self.initial_zoom_fac = 1.01
@@ -85,7 +96,8 @@ class ZoomAutoVisualizer(ZoomVisualizer):
 
     def visualize(self):
 
-        frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+        frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution,
+                              self.fractal_fn)
         cv2.namedWindow('Fractal Zoom')
         self.visualize_frame(frame)
         cv2.waitKey(self.frame_refresh_ms)
@@ -96,7 +108,8 @@ class ZoomAutoVisualizer(ZoomVisualizer):
         i = 0
         while True:
             self.update_domain_params(center_real_coord, center_imag_coord)
-            frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+            frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution,
+                                  self.fractal_fn)
             self.visualize_frame(frame)
             cv2.waitKey(self.frame_refresh_ms)
 
@@ -130,7 +143,8 @@ class ZoomAutoVisualizer(ZoomVisualizer):
             if (zoom_start_real - self.center_real) * real_dist < 0 and (
                     zoom_start_imag - self.center_imag) * imag_direction < 0:
                 break
-            frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution)
+            frame = compute_frame(complex(self.center_real, self.center_imag), self.radius, self.resolution,
+                                  self.fractal_fn)
             self.visualize_frame(frame)
             cv2.waitKey(self.frame_refresh_ms)
 

@@ -3,6 +3,11 @@ from enum import Enum
 import torch
 
 
+class FractalClass(Enum):
+    MANDELBROT = 'mandelbrot'
+    JULIA = 'julia'
+
+
 class VisualizationMode(Enum):
     CLICK = 'click'
     AUTO = 'auto'
